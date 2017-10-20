@@ -275,11 +275,11 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
 
                 try {
                     resultObj.put("token", account.getIdToken());
+                    this.signinCallback.success(resultObj);
                 } catch (JSONException e) {
                     Log.e(TAG, "Failed to process getIdToken", e);
+                    this.signinCallback.error("failed");
                 }
-
-                this.signinCallback.success(resultObj);
 
                 //call the following to auth and connect with firebase user
                 //firebaseAuthWithGoogle(account);
