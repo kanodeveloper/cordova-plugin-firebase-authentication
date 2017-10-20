@@ -1,6 +1,6 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
 xmlns:android="http://schemas.android.com/apk/res/android"
-           id="cordova-plugin-firebase-authentication"
+           id="cordova-plugin-firebase-authentication-ka"
       version="0.11.1">
 
     <name>cordova-plugin-firebase-authentication</name>
@@ -45,6 +45,7 @@ xmlns:android="http://schemas.android.com/apk/res/android"
         <dependency id="cordova-support-google-services" version="~1.0.0"/>
 
         <framework src="com.google.firebase:firebase-auth:11.0.+" />
+        <framework src="com.google.android.gms:play-services-auth:11.0.+" />
 
         <source-file src="src/android/FirebaseAuthenticationPlugin.java"
             target-dir="src/by/chemerisuk/cordova/firebase/" />

@@ -2,8 +2,22 @@ package by.chemerisuk.cordova.firebase;
 
 import android.util.Log;
 
+import android.support.annotation.NonNull;
+
+import android.content.Context;
+import android.content.Intent;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Status;
 
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -12,9 +26,11 @@ import com.google.firebase.auth.GetTokenResult;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.FirebaseException;
+import com.google.firebase.auth.*;
 
-import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PluginResult;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,9 +42,11 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCompleteListener<AuthResult> {
     private static final String TAG = "FirebaseAuthentication";
 
+    private static final int RC_SIGN_IN = 9001;
     private FirebaseAuth firebaseAuth;
     private PhoneAuthProvider phoneAuthProvider;
     private CallbackContext signinCallback;
+    private GoogleApiClient googleApiClient;
 
     @Override
     protected void pluginInitialize() {
@@ -36,6 +54,21 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
 
         this.firebaseAuth = FirebaseAuth.getInstance();
         this.phoneAuthProvider = PhoneAuthProvider.getInstance();
+
+        Context context = this.cordova.getActivity().getApplicationContext();
+        String defaultClientId = getDefaultClientId(context);
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(defaultClientId)
+                .requestEmail()
+                .requestProfile()
+                .build();
+
+        googleApiClient = new GoogleApiClient.Builder(context)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+        googleApiClient.connect();
+        //firebaseAuth = FirebaseAuth.getInstance();
+        //firebaseAuth.addAuthStateListener(this);
     }
 
     @Override
@@ -50,10 +83,13 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
             signInWithVerificationId(args.getString(0), args.getString(1), callbackContext);
             return true;
         } else if (action.equals("verifyPhoneNumber")) {
-            verifyPhoneNumber(args.getString(0), callbackContext);
+            verifyPhoneNumber(args.getString(0), args.getLong(1), callbackContext);
             return true;
         } else if (action.equals("signOut")) {
             signOut(callbackContext);
+            return true;
+        } else if (action.equals("signInWithGoogle")) {
+            signInWithGoogle(callbackContext);
             return true;
         }
 
@@ -87,6 +123,7 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
 
     @Override
     public void onComplete(Task<AuthResult> task) {
+
         if (this.signinCallback == null) return;
 
         if (task.isSuccessful()) {
@@ -141,11 +178,11 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
         });
     }
 
-    private void verifyPhoneNumber(final String phoneNumber, final CallbackContext callbackContext) {
+    private void verifyPhoneNumber(final String phoneNumber, final long timeout, final CallbackContext callbackContext) {
         cordova.getThreadPool().execute(new Runnable() {
             @Override
             public void run() {
-                phoneAuthProvider.verifyPhoneNumber(phoneNumber, 0, MILLISECONDS, cordova.getActivity(),
+                phoneAuthProvider.verifyPhoneNumber(phoneNumber, timeout, MILLISECONDS, cordova.getActivity(),
                     new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                         @Override
                         public void onVerificationCompleted(PhoneAuthCredential credential) {
@@ -183,6 +220,22 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
         });
     }
 
+    private void signInWithGoogle(final CallbackContext callbackContext) {
+
+        this.signinCallback = callbackContext;
+
+        final CordovaPlugin plugin = this;
+
+        cordova.getThreadPool().execute(new Runnable() {
+            @Override
+            public void run() {
+
+                Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(googleApiClient);
+                cordova.startActivityForResult(plugin, signInIntent, RC_SIGN_IN);
+            }
+        });
+    }
+
     private static JSONObject getProfileData(FirebaseUser user) {
         JSONObject result = new JSONObject();
 
@@ -193,10 +246,54 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
             result.put("phoneNumber", user.getPhoneNumber());
             result.put("photoURL", user.getPhotoUrl());
             result.put("providerId", user.getProviderId());
+            result.put("token", user.getIdToken(false));
         } catch (JSONException e) {
             Log.e(TAG, "Fail to process getProfileData", e);
         }
 
         return result;
+    }
+
+    private String getDefaultClientId(Context context) {
+
+        String packageName = context.getPackageName();
+        int id = context.getResources().getIdentifier("default_web_client_id", "string", packageName);
+        return context.getString(id);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+
+            if (result.isSuccess()) {
+                // Google Sign In was successful, authenticate with Firebase
+                GoogleSignInAccount account = result.getSignInAccount();
+
+                JSONObject resultObj = new JSONObject();
+
+                try {
+                    resultObj.put("token", account.getIdToken());
+                } catch (JSONException e) {
+                    Log.e(TAG, "Failed to process getIdToken", e);
+                }
+
+                this.signinCallback.success(resultObj);
+
+                //call the following to auth and connect with firebase user
+                //firebaseAuthWithGoogle(account);
+
+            } else {
+                this.signinCallback.error("failed");
+                // Google Sign In failed, update UI appropriately
+                // ...
+            }
+        }
+    }
+
+    private void firebaseAuthWithGoogle(GoogleSignInAccount acct) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(acct.getIdToken(), null);
+        this.firebaseAuth.signInWithCredential(credential).addOnCompleteListener(this);
     }
 }
