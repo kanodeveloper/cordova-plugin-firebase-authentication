@@ -1,7 +1,7 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
 xmlns:android="http://schemas.android.com/apk/res/android"
            id="cordova-plugin-firebase-authentication-ka"
-      version="0.11.1">
+      version="0.11.2">
 
     <name>cordova-plugin-firebase-authentication</name>
     <description>Cordova plugin for Firebase Authentication</description>
@@ -20,6 +20,7 @@ xmlns:android="http://schemas.android.com/apk/res/android"
         <engine name="cordova-ios" version=">=4.3.0"/>
     </engines>
 
+    <!--
     <platform name="ios">
         <config-file target="config.xml" parent="/*">
             <feature name="FirebaseAuthentication">
@@ -33,6 +34,7 @@ xmlns:android="http://schemas.android.com/apk/res/android"
 
         <framework src="Firebase/Auth" type="podspec" spec="~> 4.1"/>
     </platform>
+    -->
 
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
