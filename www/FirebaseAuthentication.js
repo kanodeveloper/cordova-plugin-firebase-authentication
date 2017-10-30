@@ -1,4 +1,4 @@
-cordova.define("cordova-plugin-firebase-authentication.FirebaseAuthentication", function(require, exports, module) {
+cordova.define("cordova-plugin-firebase-authentication-ka.FirebaseAuthentication", function(require, exports, module) {
     var exec = require("cordova/exec");
     var PLUGIN_NAME = "FirebaseAuthentication";
 
