@@ -1,7 +1,7 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
 xmlns:android="http://schemas.android.com/apk/res/android"
            id="cordova-plugin-firebase-authentication-ka"
-      version="1.0.2">
+      version="1.0.3">
 
     <name>cordova-plugin-firebase-authentication</name>
     <description>Cordova plugin for Firebase Authentication</description>
@@ -37,6 +37,9 @@ xmlns:android="http://schemas.android.com/apk/res/android"
     -->
 
     <platform name="android">
+
+        <preference name="ANDROID_API_VERSION" default="11.8.0"/>
+
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FirebaseAuthentication">
                 <param name="android-package" value="by.chemerisuk.cordova.firebase.FirebaseAuthenticationPlugin" />
@@ -46,8 +49,8 @@ xmlns:android="http://schemas.android.com/apk/res/android"
 
         <dependency id="cordova-plugin-google-services-ka" version="~1.0.0"/>
 
-        <framework src="com.google.firebase:firebase-auth:11.8.0" />
-        <framework src="com.google.android.gms:play-services-auth:11.8.+" />
+        <framework src="com.google.firebase:firebase-auth:$ANDROID_API_VERSION" />
+        <framework src="com.google.android.gms:play-services-auth:$ANDROID_API_VERSION" />
 
         <source-file src="src/android/FirebaseAuthenticationPlugin.java"
             target-dir="src/by/chemerisuk/cordova/firebase/" />
