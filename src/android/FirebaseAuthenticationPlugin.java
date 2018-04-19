@@ -267,7 +267,7 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
         if (requestCode == RC_SIGN_IN) {
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
 
-            if (result.isSuccess()) {
+            if (result != null && result.isSuccess()) {
                 // Google Sign In was successful, authenticate with Firebase
                 GoogleSignInAccount account = result.getSignInAccount();
 
