@@ -36,9 +36,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-
 public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCompleteListener<AuthResult> {
     private static final String TAG = "FirebaseAuthentication";
 
@@ -67,14 +64,16 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
                 .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
                 .build();
         googleApiClient.connect();
-        //firebaseAuth = FirebaseAuth.getInstance();
-        //firebaseAuth.addAuthStateListener(this);
     }
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (action.equals("signInAnonymously")) {
             signInAnonymously(callbackContext);
+            return true;
+        }
+        else if (action.equals("getIdToken")) {
+            getIdToken(args.getBoolean(0), callbackContext);
             return true;
         }
 
@@ -108,6 +107,25 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
         });
     }
 
+    private void getIdToken(boolean forceRefresh, final CallbackContext callbackContext) {
+        FirebaseUser user = firebaseAuth.getCurrentUser();
+
+        if (user == null) {
+            callbackContext.error("User is not authorized");
+        } else {
+            user.getIdToken(forceRefresh)
+                    .addOnCompleteListener(cordova.getActivity(), new OnCompleteListener<GetTokenResult>() {
+                        @Override
+                        public void onComplete(Task<GetTokenResult> task) {
+                            if (task.isSuccessful()) {
+                                callbackContext.success(task.getResult().getToken());
+                            } else {
+                                callbackContext.error(task.getException().getMessage());
+                            }
+                        }
+                    });
+        }
+    }
 
     private void signOut(final CallbackContext callbackContext) {
         cordova.getThreadPool().execute(new Runnable() {
@@ -130,7 +148,6 @@ public class FirebaseAuthenticationPlugin extends CordovaPlugin implements OnCom
             result.put("phoneNumber", user.getPhoneNumber());
             result.put("photoURL", user.getPhotoUrl());
             result.put("providerId", user.getProviderId());
-            result.put("token", user.getIdToken(false));
         } catch (JSONException e) {
             Log.e(TAG, "Fail to process getProfileData", e);
         }
